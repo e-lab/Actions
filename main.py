@@ -32,7 +32,7 @@ n_classes = len(data_obj.classes)
 # Load model
 model = ModelDef(i_height, i_width, n_classes)              # Network architecture is stored here
 
-optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.eta)
 loss_fn = nn.MSELoss()
 
 
@@ -58,7 +58,7 @@ def train(epoch):
         n_inp = 512 * (i_height // 64) * (i_width // 64)    # input neurons of RNN
         # RNN input should be: batch_size x frames x neurons
         rnn_inputs = torch.FloatTensor(args.bs, n_frames, n_inp)
-        h0 = model.init_hidden(args.batch_size)
+        h0 = model.init_hidden(args.bs)
 
         if args.cuda:  # Convert into CUDA tensors
             rnn_inputs = rnn_inputs.cuda()
@@ -71,27 +71,28 @@ def train(epoch):
 
         optimizer.zero_grad()
         model.zero_grad()
-        output = None
-        for seq_idx in range((n_frames//seq_len)-1):
+        for seq_idx in range(n_frames):
             h0 = repackage_hidden(h0)
-            output, h0 = model.forward(Variable(rnn_inputs[:, seq_idx*seq_len:(seq_idx+1)*seq_len]), h0)
+            h0 = model.forward(Variable(rnn_inputs[:, seq_idx]), h0)
 
-        loss = loss_fn(output, target_batch_seq)
+        loss = loss_fn(h0, Variable(target_batch_seq))
         loss.backward()
         optimizer.step()
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         # torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
 
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        if batch_idx % 10 == 0:
+            print(len(data_batch_seq))
+            print(batch_idx)
+            """print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data_batch_seq), len(data_loader.dataset),
                 100. * batch_idx / len(data_loader), loss.data[0]))
-
+            """
 
 def main():
     print("\n\033[94m\033[1me-Lab Gesture Recognition Training Script\033[0m\n")
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(1, 100):
         train(epoch)
         with open(args.save + "model.net", 'wb') as f:
             torch.save(model, f)
