@@ -10,6 +10,7 @@ import warnings
 iHeight = 128
 iWidth = 128
 
+getImgs = False
 rootDirSave = "./dataSave/"
 if not os.path.exists(rootDirSave):
     os.makedirs(rootDirSave)
@@ -19,7 +20,7 @@ subDirList = os.listdir(rootDirLoad)
 pbar1 = trange(len(subDirList), ncols=150, position=0, desc='Overall progress      ')
 classes = []
 
-dataList = open("./dataList.txt", "w")
+dataList = open(rootDirSave + "/dataList.txt", "w")
 dataList.write('{:12}{:12}{:12}{:12}'.format('Class Index', 'Class name', '# of Frames', 'Filename'))
 dataList.write('\n{:-<48}'.format(''))
 
@@ -59,11 +60,12 @@ for subDir in subDirList:                               # Walk through all the c
 
                     frameCount += 1
 
-                    imgName = '{:02}_{:04}.png'.format(nVideos, frameCount)
-                    # Ignore warning regarding float64 being converted into uint8
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        imsave(os.path.join(rootDirSave, subDir, imgName), tempImg)
+                    if getImgs:
+                        imgName = '{:02}_{:04}.png'.format(nVideos, frameCount)
+                        # Ignore warning regarding float64 being converted into uint8
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            imsave(os.path.join(rootDirSave, subDir, imgName), tempImg)
 
                     # (height, width, channel) -> (channel, height, width)
                     frameCollection[frameCount-1] = torch.from_numpy(np.transpose(tempImg, (2, 0, 1)))
