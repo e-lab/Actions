@@ -22,11 +22,13 @@ if torch.cuda.is_available():
     if not args.cuda:
         print("\033[32mWARNING: You have a CUDA device, so you should probably run with --cuda\033[0m")
     else:
+        torch.cuda.set_device(args.devID)
         torch.cuda.manual_seed(args.seed)
+        print("\033[41mGPU({:}) is being used!!!\033[0m".format(torch.cuda.current_device()))
 
 # Acquire dataset loader object
 data_obj = generateData.TensorFolder(root=data_dir)
-data_loader = DataLoader(data_obj, batch_size=args.bs, shuffle=True)
+data_loader = DataLoader(data_obj, batch_size=args.bs, shuffle=True, num_workers=args.workers)
 n_classes = len(data_obj.classes)
 
 # Load model
@@ -61,8 +63,9 @@ def train(epoch):
         h0 = model.init_hidden(args.bs)
 
         if args.cuda:  # Convert into CUDA tensors
+            target_batch_seq = target_batch_seq.cuda()
+            data_batch_seq = data_batch_seq.cuda()
             rnn_inputs = rnn_inputs.cuda()
-            data_batch_seq, target_batch_seq = data_batch_seq.cuda(), target_batch_seq.cuda()
 
         # Get the output of resnet-18 for individual batch per video
         for seq_idx in range(n_frames):
@@ -83,12 +86,10 @@ def train(epoch):
         # torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
 
         if batch_idx % 10 == 0:
-            print(len(data_batch_seq))
-            print(batch_idx)
-            """print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data_batch_seq), len(data_loader.dataset),
                 100. * batch_idx / len(data_loader), loss.data[0]))
-            """
+
 
 def main():
     print("\n\033[94m\033[1me-Lab Gesture Recognition Training Script\033[0m\n")
