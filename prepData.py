@@ -5,17 +5,26 @@ from skimage.io import imsave
 from skvideo.io import FFmpegReader
 from skimage.transform import resize
 from tqdm import trange
+from argparse import ArgumentParser
 import warnings
 
-iHeight = 128
-iWidth = 128
+parser = ArgumentParser(description='e-Lab Gesture Recognition Script')
+_ = parser.add_argument
+_('--data',  type=str, default='/media/HDD2/Models/', help='dataset location')
+_('--save',  type=str, default='/media/HDD2/Models/', help='folder to save outputs')
+_('--dim',   type=int, default=(256, 128), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W', 'H'))
+
+args = parser.parse_args()
+
+iWidth = args.dim[0]
+iHeight = args.dim[1]
 
 getImgs = False
-rootDirSave = "./dataSave/"
+rootDirSave = args.save
 if not os.path.exists(rootDirSave):
     os.makedirs(rootDirSave)
 
-rootDirLoad = "./data/"
+rootDirLoad = args.data
 subDirList = os.listdir(rootDirLoad)
 pbar1 = trange(len(subDirList), ncols=150, position=0, desc='Overall progress      ')
 classes = []
