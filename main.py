@@ -11,6 +11,8 @@ from opts import get_args           # Get all the input arguments
 from Models.model import ModelDef   # Get the model definition
 import generateData
 
+print('\033[0;0f\033[0J')
+
 args = get_args()                   # Holds all the input argument
 
 seq_len = args.seq
@@ -51,6 +53,10 @@ pretrained_rn18 = models.resnet18(pretrained=True)
 model_rn18 = nn.Sequential(*list(pretrained_rn18.children())[:-2])
 avg_pool = nn.AvgPool2d(3, stride=2, padding=1)
 
+if args.cuda:
+    model_rn18.cuda()
+    avg_pool.cuda()
+    model.cuda()
 
 def train(epoch):
     model.train()
