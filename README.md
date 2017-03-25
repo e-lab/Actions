@@ -3,6 +3,22 @@
 This repository contains scripts to train deep neural network for gesture recognition using video dataset.
 Our aim is to use the temporal coherency present in video data and stabilize neural network's output probabilities.
 
+## Dependencies
+
+ + [*scikit-video*](https://github.com/scikit-video/scikit-video): accessing images / videos
+
+```bash
+pip install sk-video
+```
+
+ + [*tqdm*](https://github.com/tqdm/tqdm): progress bar
+
+```bash
+conda config --add channels conda-forge
+conda update --all
+conda install tqdm
+```
+
 ### Input data structure
 
 ```
