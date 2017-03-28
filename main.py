@@ -34,7 +34,7 @@ data_loader = DataLoader(data_obj, batch_size=args.bs, shuffle=True, num_workers
 n_classes = len(data_obj.classes)
 
 # Load model
-model = ModelDef(i_height, i_width, n_classes)              # Network architecture is stored here
+model = ModelDef(i_height, i_width, n_classes, args.rnn_type)        # Network architecture is stored here
 
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.eta)
 loss_fn = nn.MSELoss()
@@ -58,6 +58,9 @@ if args.cuda:
     avg_pool.cuda()
     model.cuda()
 
+h0 = model.init_hidden(args.bs)
+c0 = model.init_hidden(args.bs)
+
 def train(epoch):
     model.train()
     for batch_idx, (data_batch_seq, target_batch_seq) in enumerate(data_loader):
@@ -67,6 +70,8 @@ def train(epoch):
         # RNN input should be: batch_size x frames x neurons
         rnn_inputs = torch.FloatTensor(args.bs, n_frames, n_inp)
         h0 = model.init_hidden(args.bs)
+        if args.rnn_type == 'LSTM':
+            c0 = model.init_hidden(args.bs)
 
         if args.cuda:  # Convert into CUDA tensors
             target_batch_seq = target_batch_seq.cuda()
@@ -81,8 +86,13 @@ def train(epoch):
         optimizer.zero_grad()
         model.zero_grad()
         for seq_idx in range(n_frames):
-            h0 = repackage_hidden(h0)
-            h0 = model.forward(Variable(rnn_inputs[:, seq_idx]), h0)
+            if args.rnn_type == 'LSTM':
+                h0 = repackage_hidden(h0)
+                c0 = repackage_hidden(c0)
+                h0, c0 = model.forward(Variable(rnn_inputs[:, seq_idx]), h0, c0)
+            else:
+                h0 = repackage_hidden(h0)
+                h0 = model.forward(Variable(rnn_inputs[:, seq_idx]), h0, None)
 
         loss = loss_fn(h0, Variable(target_batch_seq))
         loss.backward()
