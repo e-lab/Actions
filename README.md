@@ -5,13 +5,24 @@ Our aim is to use the temporal coherency present in video data and stabilize neu
 
 ## Dependencies
 
+ + [*matplotlib*](http://matplotlib.org/index.html): used by scikit-video
+
+```bash
+pip install matplotlib
+```
+
  + [*scikit-video*](https://github.com/scikit-video/scikit-video): accessing images / videos
 
 ```bash
 pip install sk-video
+pip install scikit-image --upgrade
 ```
 
  + [*tqdm*](https://github.com/tqdm/tqdm): progress bar
+
+```bash
+pip install tqdm
+```
 
 ```bash
 conda config --add channels conda-forge
@@ -44,5 +55,5 @@ This script will convert these videos into tensors with `.pyt` extensions.
 Also, dataset location, place to save model, batch size are some of the inputs which must be provided to the training script.
 
 ```
-python main.py --data /data/in/tensor --save /save/trained/model
+python3 main.py --data /data/in/tensor --save /save/trained/model
 ```
