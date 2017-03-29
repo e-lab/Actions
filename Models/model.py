@@ -1,3 +1,4 @@
+import math
 import torch.nn as nn
 from torch.autograd import Variable
 
@@ -8,7 +9,7 @@ class ModelDef(nn.Module):
     Generate model architecture
     """
 
-    def __init__(self, i_height, i_width, n_classes, rnn_type='RNN'):
+    def __init__(self, n_inp, n_classes, rnn_type='RNN'):
         """
         Model initialization
 
@@ -20,12 +21,9 @@ class ModelDef(nn.Module):
         :type rnn_type: str
         """
         super(ModelDef, self).__init__()
-        # Output size of ResNet18
-        self.o_height = i_height // 64
-        self.o_width = i_width // 64
+        self.n_inp = n_inp
         self.n_layers = 1
         self.n_classes = n_classes
-        self.n_inp = 512 * self.o_height * self.o_width  # Input neurons of rnn
 
         self.rnn_type = rnn_type + 'Cell'
         if rnn_type == 'RNN':

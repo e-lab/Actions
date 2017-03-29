@@ -12,7 +12,7 @@ parser = ArgumentParser(description='e-Lab Gesture Recognition Script')
 _ = parser.add_argument
 _('--data',  type=str, default='/media/HDD2/Models/', help='dataset location')
 _('--save',  type=str, default='/media/HDD2/Models/', help='folder to save outputs')
-_('--dim',   type=int, default=(256, 128), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W', 'H'))
+_('--dim',   type=int, default=(256, 144), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W', 'H'))
 
 args = parser.parse_args()
 
@@ -26,12 +26,12 @@ if not os.path.exists(rootDirSave):
 
 rootDirLoad = args.data
 subDirList = os.listdir(rootDirLoad)
-pbar1 = trange(len(subDirList), ncols=150, position=0, desc='Overall progress      ')
+pbar1 = trange(len(subDirList), ncols=100, position=0, desc='Overall progress      ')
 classes = []
 
 dataList = open(rootDirSave + "/dataList.txt", "w")
-dataList.write('{:12}{:12}{:12}{:12}'.format('Class Index', 'Class name', '# of Frames', 'Filename'))
-dataList.write('\n{:-<48}'.format(''))
+dataList.write('{:8} {:12} {:12} {:12}'.format('Class #', 'Class name', '# of Frames', 'Filename'))
+dataList.write('\n{:-<47}'.format(''))
 
 nClasses = 0
 for subDir in subDirList:                               # Walk through all the classes
@@ -43,7 +43,7 @@ for subDir in subDirList:                               # Walk through all the c
         files = os.listdir(os.path.join(rootDirLoad, subDir))
         nVideos = 0                                     # Videos in class X
 
-        pbar2 = trange(len(files), ncols=150, position=2, desc='Within-class progress ')
+        pbar2 = trange(len(files), ncols=100, position=2, desc='Within-class progress ')
 
         for file in files:                              # Get all the videos
             if file.lower().endswith('.avi') or file.lower().endswith('.mp4'):
@@ -52,14 +52,14 @@ for subDir in subDirList:                               # Walk through all the c
                 nFrames = reader.getShape()[0]
 
                 nVideos += 1
-                dataList.write('\n{:12}{:12}{:12}{:02}.pyt'.format(nClasses, subDir, str(nFrames), nVideos))
+                dataList.write('\n{:<8} {:12} {:<12} {:02}.pyt'.format(nClasses, subDir, nFrames, nVideos))
 
                 # Create class directories if they do not exist
                 classDir = os.path.join(rootDirSave, subDir)
                 if not os.path.exists(classDir):
                     os.makedirs(classDir)
 
-                pbar3 = trange(nFrames, ncols=150, position=4, desc='Video progress        ')
+                pbar3 = trange(nFrames, ncols=100, position=4, desc='Video progress        ')
                 frameCount = 0
                 # Tensor to save all the frames of a video
                 frameCollection = torch.FloatTensor(nFrames, 3, iHeight, iWidth)
@@ -91,3 +91,5 @@ for subDir in subDirList:                               # Walk through all the c
 dataList.close()
 pbar1.close()
 print('\n\n\n')
+
+
