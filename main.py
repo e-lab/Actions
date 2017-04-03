@@ -1,4 +1,5 @@
 # Python imports
+import os
 import math
 import torch
 import torch.optim as optim
@@ -21,6 +22,9 @@ CP_Y = '\033[33m'
 CP_C = '\033[0m'
 
 args = get_args()                   # Holds all the input argument
+
+if not os.path.exists(args.save):
+    os.makedirs(args.save)
 
 seq_len = args.seq
 data_dir = args.data
@@ -53,7 +57,7 @@ n_inp = 512 * math.ceil(i_height/64) * math.ceil(i_width/64)    # input neurons 
 model = ModelDef(n_inp, n_classes, args.rnn_type)        # Network architecture is stored here
 
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.eta)
-loss_fn = nn.MSELoss()
+loss_fn = nn.CrossEntropyLoss()
 
 
 def repackage_hidden(h):
@@ -108,9 +112,9 @@ def train(epoch):
             else:
                 h0 = repackage_hidden(h0)
                 h0 = model.forward(Variable(rnn_inputs[:, seq_idx]), h0, None)
-                loss = loss_fn(h0, Variable(target_batch_seq))
-                # Log batchwise error
-                logger_bw.write('\n{:.6f}'.format(loss.data[0]))
+            loss = loss_fn(h0, Variable(target_batch_seq))
+            # Log batchwise error
+            logger_bw.write('\n{:.6f}'.format(loss.data[0]))
 
         loss = loss_fn(h0, Variable(target_batch_seq))
         loss.backward()
@@ -132,7 +136,7 @@ def train(epoch):
 def main():
     print("\n\033[94m\033[1me-Lab Gesture Recognition Training Script\033[0m\n")
     error_log = list()
-    for epoch in range(1, 100):
+    for epoch in range(1, args.epochs):
         total_error = train(epoch)
         print('{}{:-<50}{}'.format(CP_R, '', CP_C))
         print('{}Epoch #: {}{:03} | {}Training Error: {}{:.6f}'.format(

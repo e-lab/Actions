@@ -91,5 +91,3 @@ for subDir in subDirList:                               # Walk through all the c
 dataList.close()
 pbar1.close()
 print('\n\n\n')
-
-

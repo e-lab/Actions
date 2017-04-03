@@ -19,6 +19,7 @@ def get_args():
     _('--lr',       type=float, default=1e-4, help='learning rate')
     _('--eta',      type=float, default=0.9, help='momentum')
     _('--seed',     type=int,   default=1, help='seed for random number generator')
+    _('--epochs',   type=int,   default=300, help='# of epochs you want to run')
     _('--devID',    type=int,   default=0, help='GPU ID to be used')
     _('--workers',  type=int,   default=0, help='number of workers for data loader')
     _('--cuda',     action='store_true', help='use CUDA')
