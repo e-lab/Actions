@@ -4,6 +4,7 @@
 *.sw*
 *.so
 *.o
+*.png
 *.mp4
 *.mov
 *.txt
