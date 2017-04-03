@@ -10,8 +10,8 @@ import warnings
 
 parser = ArgumentParser(description='e-Lab Gesture Recognition Script')
 _ = parser.add_argument
-_('--data',  type=str, default='/media/HDD2/Models/', help='dataset location')
-_('--save',  type=str, default='/media/HDD2/Models/', help='folder to save outputs')
+_('--data',  type=str, default='/media/HDD1/Datasets/Gesture-eLab-Dataset', help='dataset location')
+_('--save',  type=str, default='/media/HDD1/Models/Action/niki/cache', help='folder to save outputs')
 _('--dim',   type=int, default=(256, 144), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W', 'H'))
 
 args = parser.parse_args()
@@ -33,6 +33,10 @@ dataList = open(rootDirSave + "/dataList.txt", "w")
 dataList.write('{:8} {:12} {:12} {:12}'.format('Class #', 'Class name', '# of Frames', 'Filename'))
 dataList.write('\n{:-<47}'.format(''))
 
+classList = open(rootDirSave + "/classList.txt", "w")
+classList.write('{:8} {:12}'.format('Class #', 'Class name'))
+classList.write('\n{:-<20}'.format(''))
+
 nClasses = 0
 for subDir in subDirList:                               # Walk through all the classes
     pbar1.update(1)
@@ -44,6 +48,8 @@ for subDir in subDirList:                               # Walk through all the c
         nVideos = 0                                     # Videos in class X
 
         pbar2 = trange(len(files), ncols=100, position=2, desc='Within-class progress ')
+        
+        classList.write('\n{:<8} {:12}'.format(nClasses, subDir))
 
         for file in files:                              # Get all the videos
             if file.lower().endswith('.avi') or file.lower().endswith('.mp4'):
@@ -89,6 +95,7 @@ for subDir in subDirList:                               # Walk through all the c
 
 
 dataList.close()
+classList.close()
 pbar1.close()
 print('\n\n\n')
 

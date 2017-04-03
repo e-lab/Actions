@@ -9,8 +9,8 @@ def get_args():
     """
     parser = ArgumentParser(description='e-Lab Gesture Recognition Script')
     _ = parser.add_argument
-    _('--data',     type=str,   default='/media/HDD2/Models/', help='dataset location')
-    _('--save',     type=str,   default='/media/HDD2/Models/', help='folder to save outputs')
+    _('--data',     type=str,   default='/media/HDD1/Models/Action/niki/cache', help='dataset location')
+    _('--save',     type=str,   default='/media/HDD1/Models/Action/niki/Models', help='folder to save outputs')
     _('--model',    type=str,   default='models/model.py')
     _('--rnn_type', type=str,   default='LSTM', help='RNN | LSTM | GRU')
     _('--dim',      type=int,   default=(256, 144), nargs=2, help='input image dimension as tuple (HxW)', metavar=('W', 'H'))

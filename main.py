@@ -37,6 +37,7 @@ if torch.cuda.is_available():
 
 # Acquire dataset loader object
 data_obj = generateData.TensorFolder(root=data_dir)
+print(data_obj)
 data_loader = DataLoader(data_obj, batch_size=args.bs, shuffle=True, num_workers=args.workers)
 n_classes = len(data_obj.classes)
 
@@ -80,8 +81,11 @@ def train(epoch):
     model.train()
     total_error = 0
     for batch_idx, (data_batch_seq, target_batch_seq) in enumerate(data_loader):
+        print("batch_idx:" + str(batch_idx) + " data_batch_seq:" + str(data_batch_seq) + " target_batch_seq:" + str(target_batch_seq))
+
         # Data is of the dimension: batch_size x frames x 3 x height x width
         n_frames = data_batch_seq.size(1)
+        print("n_frames:" + str(n_frames))
         # RNN input should be: batch_size x frames x neurons
         rnn_inputs = torch.FloatTensor(args.bs, n_frames, n_inp)
         h0 = model.init_hidden(args.bs)
@@ -96,6 +100,7 @@ def train(epoch):
         # Get the output of resnet-18 for individual batch per video
         for seq_idx in range(n_frames):
             temp_variable = avg_pool(model_rn18(Variable(data_batch_seq[:, seq_idx])))
+            print("data_batch_seq: - " + str(data_batch_seq[:,seq_idx]))
             rnn_inputs[:, seq_idx] = temp_variable.data.view(-1, n_inp)
 
         optimizer.zero_grad()
