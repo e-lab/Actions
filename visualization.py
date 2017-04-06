@@ -5,40 +5,36 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 import torchvision.models as models
 from argparse import ArgumentParser
-import time
 from skimage.io import imsave
 from skvideo.io import FFmpegReader
 from skimage.transform import resize 
-
 import cv2
 import numpy as np
 import time
-
-#Local imports
+import os
 from Models.model import ModelDef
 
-filename = "1.mp4"
-#cam = cv2.VideoCapture(filename)
 
 #Arguments
 parser = ArgumentParser(description='e-Lab Gesture Recognition Visualization Script')
 _ = parser.add_argument
-_('--loc', type=str, default='/media/HDD1/Models/Action/niki/Models/', help='Trained Model file')
+_('--loc', type=str, default='/media/HDD1/Models/Action/abhi/Models/', help='Trained Model file folder')
 _('--model', type=str, default='/model.pyt')
-_('--rnn_type', type=str, default='RNN', help='rnn | lstm | gru')
+_('--rnn_type', type=str, default='LSTM', help='rnn | lstm | gru')
 _('--dim', type=int, default=(256, 144), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W','H'))
 _('--bs', type=int, default=1, help='batch size')
 _('--seed', type=int, default=1, help='seed for random number generator')
-_('--devID', type=int, default=0, help='GPU ID to be used')
+_('--devID', type=int, default=1, help='GPU ID to be used')
 _('--cuda', action='store_true', help="use CUDA")
-
+_('--test_filename', type=str, default='1.mp4', help='Path of the test video file')
+_('--classname_path', type=str, default='/media/HDD1/Models/Action/niki/cache/classList.txt', help='path of file containing the map between class label and class name')
 args = parser.parse_args()
-#args.cuda = True
-print("CUDA:" + str(args.cuda))
+
+#args.cuda=True
 iHeight = args.dim[0]
 iWidth = args.dim[1]
 
-reader = FFmpegReader(filename)
+reader = FFmpegReader(args.test_filename)
 n_frames = reader.getShape()[0]
 
 #TODO: Read batch size number of videos at a time.
@@ -52,23 +48,6 @@ for frame in reader.nextFrame():
     frameCollection[frameCount] = torch.from_numpy(np.transpose(tempImg, (2, 0, 1)))
     frameCount += 1
 print("Number of Frames:" + str(n_frames))
-
-#count = 0
-#while cam.isOpened():
-#    ret, frames = cam.read()
-#    print(count)
-#    break
-#    count += 1
-
-#print(count)
-    
-#while(cam.isOpened()):
-#    ret, frame = cam.read()
-#    if ret==True:
-#        frame = cv2.flip(frame, 0)
-#    else:
-#        break
-#cam.release()
 
 #Check for GPU
 if torch.cuda.is_available():
@@ -91,9 +70,9 @@ print("Trained Model Location : " + trained_model_loc)
 model = torch.load(trained_model_loc)
 
 if args.cuda:
-    model_rn18.cuda()
-    avg_pool.cuda()
-    model.cuda()
+    #model_rn18.cuda()
+    avg_pool.cuda(1)
+    model.cuda(1)
 
 def repackage_hidden(h):
     """Wraps hidden states in new Variables, tp detach from their history."""
@@ -118,8 +97,8 @@ def evaluate():
         rnn_input[:, frame_id] = temp_var.data.view(-1, model.n_inp)
     
     #if args.cuda:   # Convert into CUDA tensors
-    collection = collection.cuda()
-    rnn_input = rnn_input.cuda()
+    collection = collection.cuda(1)
+    rnn_input = rnn_input.cuda(1)
 
 
    #Get ouptut for rnn model
@@ -137,19 +116,29 @@ def evaluate():
             
     return repackage_hidden(h0)
 
+def get_class_name(classnamelist_file_path):
+    class_map = {}
+    file = open(classnamelist_file_path, "r")
+    for line in file.readlines():
+        num, name = line.strip("\n").split(",")
+        class_map[int(num)] = name
+    file.close()  
+    return class_map          
 
-def predict(n_predictions = 3):
-    output = evaluate()
-    
+def predict(n_predictions = 5):
+    output = evaluate().float()
+       
     #Get top N categories
     topv, topi = output.data.topk(n_predictions, 1, True)
     predictions = []
+    class_map = get_class_name(args.classname_path)
 
     for i in range(n_predictions):
         value = topv[0][i]
-        category_index = topi[0][i]
-        print('(%.2f) %s' %(value, category_index))
-        predictions.append([value, category_index])
+        category_index = int(topi[0][i])+1
+        print('(%.2f) %s' %(value, class_map[category_index]))
+        predictions.append([value, class_map[category_index]])
     return predictions
 
 predict()
+#get_class_name(args.classname_path)

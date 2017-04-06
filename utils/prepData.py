@@ -34,8 +34,6 @@ dataList.write('{:8} {:12} {:12} {:12}'.format('Class #', 'Class name', '# of Fr
 dataList.write('\n{:-<47}'.format(''))
 
 classList = open(rootDirSave + "/classList.txt", "w")
-classList.write('{:8} {:12}'.format('Class #', 'Class name'))
-classList.write('\n{:-<20}'.format(''))
 
 nClasses = 0
 for subDir in subDirList:                               # Walk through all the classes
@@ -49,7 +47,7 @@ for subDir in subDirList:                               # Walk through all the c
 
         pbar2 = trange(len(files), ncols=100, position=2, desc='Within-class progress ')
         
-        classList.write('\n{:<8} {:12}'.format(nClasses, subDir))
+        classList.write(str(nClasses)+","+subDir+"\n")
 
         for file in files:                              # Get all the videos
             if file.lower().endswith('.avi') or file.lower().endswith('.mp4'):
