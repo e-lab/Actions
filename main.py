@@ -89,7 +89,7 @@ def main():
             print(CP_G + "Saving model!!!" + CP_C)
             print('{}{:-<50}{}\n'.format(CP_R, '', CP_C))
             with open(args.save + "/model.pyt", 'wb') as f:
-                torch.save(model, f)
+                torch.save(model.state_dict(), f)
 
     train.logger_bw.close()
 

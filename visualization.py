@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -16,13 +17,12 @@ import time
 import os
 from Models.model import ModelDef
 
-
 #Arguments
 parser = ArgumentParser(description='e-Lab Gesture Recognition Visualization Script')
 _ = parser.add_argument
-_('--loc', type=str, default='/media/HDD1/Models/Action/niki/Models/', help='Trained Model file folder')
+_('--loc', type=str, default='/media/HDD1/Models/Action/abhi/Models/rnn3', help='Trained Model file folder')
 _('--model', type=str, default='/model.pyt')
-_('--rnn_type', type=str, default='LSTM', help='rnn | lstm | gru')
+_('--rnn_type', type=str, default='RNN', help='rnn | lstm | gru')
 _('--dim', type=int, default=(256, 144), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W','H'))
 _('--bs', type=int, default=1, help='batch size')
 _('--seed', type=int, default=1, help='seed for random number generator')
@@ -40,6 +40,7 @@ n_frames = reader.getShape()[0]
 
 frameCount = 0
 frameCollection = torch.FloatTensor(n_frames, 3, iHeight, iWidth)
+
 for frame in reader.nextFrame():
     # Original resolution -> desired resolution
     tempImg = resize(frame, (iHeight, iWidth))
@@ -82,12 +83,12 @@ def repackage_hidden(h):
     else:
         return tuple(repackage_hidden(v) for v in h)
 
-
 def evaluate(n_predictions = 3):
     #Data is converted to dimension: batch_size x frames x 3 x height x width
     collection = torch.FloatTensor(args.bs, n_frames, 3, iHeight, iWidth)
     collection[0] = frameCollection
 
+    #print(model.n_inp)
     rnn_input = torch.FloatTensor(args.bs, n_frames, model.n_inp)
 
     if args.cuda:   # Convert into CUDA tensors
@@ -101,8 +102,8 @@ def evaluate(n_predictions = 3):
 
     #plt.show()
    #Get ouptut for rnn model
-    h0 = model.init_hidden(args.bs)
-    c0 = model.init_hidden(args.bs)
+    h0 = model.init_hidden(1)
+    c0 = model.init_hidden(1)
 
     figure = plt.figure()
     img = plt.imshow(frameCollection[0].numpy().reshape(iHeight, iWidth, 3), animated=True)
@@ -115,14 +116,16 @@ def evaluate(n_predictions = 3):
         plt.title("Frame" + str(frame_id))
         figure.canvas.draw()
 
-        if args.rnn_type=='LSTM':
+        h0 = repackage_hidden(h0)
+        h0 = model.forward(Variable(rnn_input[:, frame_id]), h0)
+        '''if args.rnn_type=='LSTM':
             h0 = repackage_hidden(h0)
-            c0 = repackage_hidden(c0)
-            h0, c0 = model.forward(Variable(rnn_input[:, frame_id]), h0, c0)
+            #c0 = repackage_hidden(c0)
+            h0, c0 = model.forward(Variable(rnn_input[:, frame_id]),h0)
         else:
             h0 = repackage_hidden(h0)
             h0 = model.forward(Variable(rnn_input[:, frame_id]), h0, None)
-
+        '''
         #Get top N categories
         topv, topi = h0.data.topk(n_predictions, 1, True)
         predictions = []
