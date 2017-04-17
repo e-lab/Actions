@@ -73,7 +73,8 @@ class TensorFolder(data.Dataset):
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-        return input_tensor, self.class_map[target]
+        # return input_tensor, self.class_map[target]
+        return input_tensor, target
 
     def __len__(self):
         return len(self.tensors)

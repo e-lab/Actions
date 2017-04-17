@@ -1,4 +1,5 @@
 import math
+import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
@@ -9,37 +10,52 @@ class ModelDef(nn.Module):
     Generate model architecture
     """
 
-    def __init__(self, n_inp, n_classes, rnn_type='RNN'):
+    def __init__(self, x_n, h_n, rnn_type='RNN'):
         """
         Model initialization
 
-        :param i_height: height of input image
-        :type i_height: int
-        :param i_width: width of input image
-        :type i_width: int
+        :param x_n: number of input neurons
+        :type x_n: int
+        :param h_n: # of output neurons for each layer
+        :type h_n: list
         :param rnn_type: RNN or LSTM/GRU cell
         :type rnn_type: str
         """
         super(ModelDef, self).__init__()
-        self.n_inp = n_inp
-        self.n_layers = 1
-        self.n_classes = n_classes
+        self.rnn = nn.ModuleList()
+
+        self.h_n = h_n
+        self.n_classes = h_n[-1]
 
         self.rnn_type = rnn_type + 'Cell'
         if rnn_type == 'RNN':
-            self.rnn = nn.RNNCell(self.n_inp, self.n_classes, nonlinearity='tanh')
+            for i in range(len(h_n)):
+                if i > 0:
+                    x_n = h_n[i-1]
+                self.rnn.append(nn.RNNCell(x_n, h_n[i], nonlinearity='tanh'))
         else:
-            self.rnn = getattr(nn, self.rnn_type)(self.n_inp, self.n_classes)
+            for i in range(len(h_n)):
+                if i > 0:
+                    x_n = h_n[i-1]
+                self.rnn.append(getattr(nn, self.rnn_type)(x_n, h_n[i]))
 
-    def forward(self, x, h0, c0):
-        if self.rnn_type in ['RNNCell', 'GRUCell']:
-            hn = self.rnn(x, h0)
-            return hn
-        else:
-            hn, cn = self.rnn(x, (h0, c0))
-            return (hn, cn)
+    def forward(self, x, h0):
+        hn = list()
+        for i in range(len(self.h_n)):
+            hn.append(self.rnn[i](x, h0[i]))
+            x = hn[i] if self.rnn_type in ['RNNCell', 'GRUCell'] else hn[i][0]
+
+        return hn
 
     def init_hidden(self, bsz):
         weight = next(self.parameters()).data
+        h0_default = list()
 
-        return Variable(weight.new(bsz, self.n_classes).zero_())
+        for i in range(len(self.h_n)):
+            if self.rnn_type in ['RNNCell', 'GRUCell']:
+                h0_default.append(Variable(weight.new(bsz, self.h_n[i]).zero_()))
+            else:
+                h0_default.append((Variable(weight.new(bsz, self.h_n[i]).zero_()),
+                        Variable(weight.new(bsz, self.h_n[i]).zero_())))
+
+        return h0_default

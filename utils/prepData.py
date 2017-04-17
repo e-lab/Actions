@@ -96,5 +96,3 @@ dataList.close()
 classList.close()
 pbar1.close()
 print('\n\n\n')
-
-
