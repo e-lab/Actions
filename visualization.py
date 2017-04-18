@@ -28,12 +28,12 @@ _('--bs', type=int, default=1, help='batch size')
 _('--seed', type=int, default=1, help='seed for random number generator')
 _('--devID', type=int, default=1, help='GPU ID to be used')
 _('--cuda', action='store_true', help="use CUDA")
-_('--test_filename', type=str, default='1.mp4', help='Path of the test video file')
-_('--classname_path', type=str, default='/media/HDD1/Models/Action/niki/cache/classList.txt', help='path of file containing the map between class label and class name')
+_('--test_filename', type=str, default='/media/HDD1/Datasets/Gesture-eLab-Dataset/pinch/20170219_191331.mp4', help='Path of the test video file')
+_('--classname_path', type=str, default='/media/HDD2/Models/Action/cache/classList.txt', help='path of file containing the map between class label and class name')
 args = parser.parse_args()
 
-iHeight = args.dim[0]
-iWidth = args.dim[1]
+iWidth = args.dim[0]
+iHeight = args.dim[1]
 
 reader = FFmpegReader(args.test_filename)
 n_frames = reader.getShape()[0]
@@ -68,8 +68,11 @@ avg_pool = nn.AvgPool2d(3, stride=2, padding=1)
 # Loading the rnn_type model
 trained_model_loc = args.loc + args.model
 print("Trained Model Location : " + trained_model_loc)
+# Use it if model was not trained on gpu id 0
+#model = torch.load(trained_model_loc, map_location={'cuda:2':'cuda:0'})
 model = torch.load(trained_model_loc)
 model.eval()
+n_inp = 512 * math.ceil(iHeight/64) * math.ceil(iWidth/64)    # input neurons of RNN
 
 if args.cuda:
     model_rn18.cuda()
@@ -88,8 +91,7 @@ def evaluate(n_predictions = 3):
     collection = torch.FloatTensor(args.bs, n_frames, 3, iHeight, iWidth)
     collection[0] = frameCollection
 
-    #print(model.n_inp)
-    rnn_input = torch.FloatTensor(args.bs, n_frames, model.n_inp)
+    rnn_input = torch.FloatTensor(args.bs, n_frames, n_inp)
 
     if args.cuda:   # Convert into CUDA tensors
         collection = collection.cuda()
@@ -98,35 +100,32 @@ def evaluate(n_predictions = 3):
     #Get output for resnet-18
     for frame_id in range(n_frames):
         temp_var = avg_pool(model_rn18(Variable(collection[:, frame_id])))
-        rnn_input[:, frame_id] = temp_var.data.view(-1, model.n_inp)
+        rnn_input[:, frame_id] = temp_var.data.view(-1, n_inp)
 
     #plt.show()
    #Get ouptut for rnn model
-    h0 = model.init_hidden(1)
-    c0 = model.init_hidden(1)
+    state = model.init_hidden(args.bs)
 
     figure = plt.figure()
-    img = plt.imshow(frameCollection[0].numpy().reshape(iHeight, iWidth, 3), animated=True)
+    img_to_show = np.transpose(frameCollection[0].numpy(), (1, 2, 0))
+
+    img = plt.imshow(img_to_show, animated=True)
     figure.show()
 
    # colors = ['red', 'blue', 'green', 'yellow', 'orange']
     for frame_id in range(n_frames):
         #plt.clf()
-        plt.imshow(frameCollection[frame_id].numpy().reshape(iHeight, iWidth, 3))
-        plt.title("Frame" + str(frame_id))
+        img_to_show = np.transpose(frameCollection[frame_id].numpy(), (1, 2, 0))
+        plt.imshow(img_to_show)
         figure.canvas.draw()
 
-        h0 = repackage_hidden(h0)
-        h0 = model.forward(Variable(rnn_input[:, frame_id]), h0)
-        '''if args.rnn_type=='LSTM':
-            h0 = repackage_hidden(h0)
-            #c0 = repackage_hidden(c0)
-            h0, c0 = model.forward(Variable(rnn_input[:, frame_id]),h0)
-        else:
-            h0 = repackage_hidden(h0)
-            h0 = model.forward(Variable(rnn_input[:, frame_id]), h0, None)
-        '''
+        state = model.init_hidden(args.bs)
+        state = model.forward(Variable(rnn_input[:, frame_id]), state)
+
         #Get top N categories
+        h0 = state[-1]
+        if args.rnn_type == 'LSTM':
+            h0 = state[-1][0]
         topv, topi = h0.data.topk(n_predictions, 1, True)
         predictions = []
         class_map = get_class_name(args.classname_path)
@@ -137,17 +136,20 @@ def evaluate(n_predictions = 3):
             category_index = int(topi[0][i])+1
             print('(%.2f) %s' %(value, class_map[category_index]))
             predictions.append([value, class_map[category_index]])
-        pred_txt = ""
+        pred_txt = "| "
         for v,clazz in predictions:
-            pred_txt = pred_txt + clazz +"  ,  "
+            pred_txt = pred_txt + clazz +"  |  "
 
         print(pred_txt)
-        txt = figure.text(0,0,pred_txt,
-                    bbox={'facecolor':'red', 'alpha':0.5, 'pad':2})
+        #plt.title("Frame" + str(frame_id))
+        plt.title(pred_txt)
+        #txt = figure.text(0,0,pred_txt,
+        #            bbox={'facecolor':'red', 'alpha':0.5, 'pad':2})
             #txt.remove()
         figure.canvas.draw()
-        time.sleep(1)
-        txt.remove()
+        plt.axis('off')
+        #time.sleep(1)
+        #txt.remove()
         print('{:-<40}\n'.format(''))
 
 
