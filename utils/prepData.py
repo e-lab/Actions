@@ -12,8 +12,10 @@ parser = ArgumentParser(description='e-Lab Gesture Recognition Script')
 _ = parser.add_argument
 _('--data',  type=str, default='/media/HDD2/Models/', help='dataset location')
 _('--save',  type=str, default='/media/HDD2/Models/', help='folder to save outputs')
-_('--dim',   type=int, default=(256, 144), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W', 'H'))
+_('--skip',  type=int, default=5, help='# of frames to skip')
+_('--dim',   type=int, default=(160, 120), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W', 'H'))
 
+print('\033[0;0f\033[0J')
 args = parser.parse_args()
 
 iWidth = args.dim[0]
@@ -62,22 +64,23 @@ for subDir in subDirList:                               # Walk through all the c
                 pbar3 = trange(nFrames, ncols=100, position=4, desc='Video progress        ')
                 frameCount = 0
                 # Tensor to save all the frames of a video
-                frameCollection = torch.FloatTensor(nFrames, 3, iHeight, iWidth)
+                frameCollection = torch.FloatTensor(nFrames//args.skip, 3, iHeight, iWidth)
                 for frame in reader.nextFrame():        # Garb each frame
-                    # Original resolution -> desired resolution
-                    tempImg = resize(frame, (iHeight, iWidth))
-
                     frameCount += 1
+                    if (frameCount % args.skip) == 0:
+                        # Original resolution -> desired resolution
+                        tempImg = resize(frame, (iHeight, iWidth))
 
-                    if getImgs:
-                        imgName = '{:02}_{:04}.png'.format(nVideos, frameCount)
-                        # Ignore warning regarding float64 being converted into uint8
-                        with warnings.catch_warnings():
-                            warnings.simplefilter("ignore")
-                            imsave(os.path.join(rootDirSave, subDir, imgName), tempImg)
 
-                    # (height, width, channel) -> (channel, height, width)
-                    frameCollection[frameCount-1] = torch.from_numpy(np.transpose(tempImg, (2, 0, 1)))
+                        if getImgs:
+                            imgName = '{:02}_{:04}.png'.format(nVideos, frameCount)
+                            # Ignore warning regarding float64 being converted into uint8
+                            with warnings.catch_warnings():
+                                warnings.simplefilter("ignore")
+                                imsave(os.path.join(rootDirSave, subDir, imgName), tempImg)
+
+                        # (height, width, channel) -> (channel, height, width)
+                        frameCollection[frameCount//args.skip-1] = torch.from_numpy(np.transpose(tempImg, (2, 0, 1)))
                     pbar3.update(1)
 
                 # Save tensors class wise
