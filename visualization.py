@@ -1,54 +1,31 @@
 import math
 import torch
-import torch.optim as optim
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader
 from torch.autograd import Variable
-import torchvision.models as models
+from torchvision import transforms
+from torchvision import models
 from argparse import ArgumentParser
-from skimage.io import imsave
 from skvideo.io import FFmpegReader
 from skimage.transform import resize
-from PIL import Image
-import cv2
 import numpy as np
 import time
-import os
-from Models.model import ModelDef
+#from Models.model import ModelDef
 
 #Arguments
 parser = ArgumentParser(description='e-Lab Gesture Recognition Visualization Script')
 _ = parser.add_argument
-_('--loc', type=str, default='/media/HDD1/Models/Action/abhi/Models/rnn3', help='Trained Model file folder')
-_('--model', type=str, default='/model.pyt')
-_('--rnn_type', type=str, default='RNN', help='rnn | lstm | gru')
-_('--dim', type=int, default=(256, 144), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W','H'))
+_('--loc', type=str, default='/media/HDD2/Models/Action/Models/KTH/', help='Trained Model file folder')
+_('--model', type=str, default='/lstm4/')
+_('--rnn_type', type=str, default='LSTM', help='rnn | lstm | gru')
+_('--dim', type=int, default=(160, 120), nargs=2, help='input image dimension as tuple (WxH)', metavar=('W','H'))
 _('--bs', type=int, default=1, help='batch size')
 _('--seed', type=int, default=1, help='seed for random number generator')
 _('--devID', type=int, default=1, help='GPU ID to be used')
 _('--cuda', action='store_true', help="use CUDA")
-_('--test_filename', type=str, default='/media/HDD1/Datasets/Gesture-eLab-Dataset/pinch/20170219_191331.mp4', help='Path of the test video file')
-_('--classname_path', type=str, default='/media/HDD2/Models/Action/cache/classList.txt', help='path of file containing the map between class label and class name')
+_('--test_filename', type=str, default='/media/HDD1/Datasets/KTH/walking/person01_walking_d1_uncomp.avi', help='Path of the test video file')
+_('--classname_path', type=str, default='/media/HDD2/Models/Action/cacheKTH/categories.txt', help='path of file containing the map between class label and class name')
 args = parser.parse_args()
-
-iWidth = args.dim[0]
-iHeight = args.dim[1]
-
-reader = FFmpegReader(args.test_filename)
-n_frames = reader.getShape()[0]
-
-frameCount = 0
-frameCollection = torch.FloatTensor(n_frames, 3, iHeight, iWidth)
-
-for frame in reader.nextFrame():
-    # Original resolution -> desired resolution
-    tempImg = resize(frame, (iHeight, iWidth))
-
-    #(height, width, channel) -> (channel, height, width)
-    frameCollection[frameCount] = torch.from_numpy(np.transpose(tempImg, (2, 0, 1)))
-    frameCount += 1
-print("Number of Frames:" + str(n_frames))
 
 #Check for GPU
 if torch.cuda.is_available():
@@ -59,20 +36,40 @@ if torch.cuda.is_available():
         torch.cuda.manual_seed(args.seed)
         print("\033[41mGPU({:}) is being used!!!\033[0m".format(torch.cuda.current_device()))
 
+iWidth = args.dim[0]
+iHeight = args.dim[1]
+
+reader = FFmpegReader(args.test_filename)
+n_frames = reader.getShape()[0]
+
+frameCount = 0
+input_img = torch.cuda.FloatTensor(1, 3, iHeight, iWidth)
+
+print("Number of Frames:" + str(n_frames))
+
 #Resnet-18 pretrained model
 torch.manual_seed(args.seed)
+n_inp = 512 * math.ceil(iHeight/64) * math.ceil(iWidth/64)    # input neurons of RNN
+
 pretrained_rn18 = models.resnet18(pretrained=True)
+pretrained_rn18.eval()
 model_rn18 = nn.Sequential(*list(pretrained_rn18.children())[:-2])
-avg_pool = nn.AvgPool2d(3, stride=2, padding=1)
+avg_pool = nn.AvgPool2d(7, stride=2, padding=3)
 
 # Loading the rnn_type model
-trained_model_loc = args.loc + args.model
-print("Trained Model Location : " + trained_model_loc)
+model_param = args.loc + args.model + '/model.pt'
+model_def = args.loc + args.model + '/modelDef.pt'
+print("Trained Model Location : " + model_param)
 # Use it if model was not trained on gpu id 0
-#model = torch.load(trained_model_loc, map_location={'cuda:2':'cuda:0'})
-model = torch.load(trained_model_loc)
+modelDef = torch.load(model_def)
+model = modelDef(n_inp, [512, 512, 6], 'LSTM')
+xxx = torch.load(model_param, map_location={'cuda:2':'cuda:1'})
+# xxx = torch.load(model_param, map_location={'cuda:3':'cuda:1'})
+model.load_state_dict(xxx)
+#model = torch.load(trained_model_loc, map_location={'cuda:3':'cuda:1'})
+#model = torch.load(trained_model_loc)
 model.eval()
-n_inp = 512 * math.ceil(iHeight/64) * math.ceil(iWidth/64)    # input neurons of RNN
+trn = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 if args.cuda:
     model_rn18.cuda()
@@ -87,40 +84,28 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 def evaluate(n_predictions = 3):
-    #Data is converted to dimension: batch_size x frames x 3 x height x width
-    collection = torch.FloatTensor(args.bs, n_frames, 3, iHeight, iWidth)
-    collection[0] = frameCollection
-
-    rnn_input = torch.FloatTensor(args.bs, n_frames, n_inp)
-
-    if args.cuda:   # Convert into CUDA tensors
-        collection = collection.cuda()
-        rnn_input = rnn_input.cuda()
-
-    #Get output for resnet-18
-    for frame_id in range(n_frames):
-        temp_var = avg_pool(model_rn18(Variable(collection[:, frame_id])))
-        rnn_input[:, frame_id] = temp_var.data.view(-1, n_inp)
-
-    #plt.show()
-   #Get ouptut for rnn model
     state = model.init_hidden(args.bs)
 
     figure = plt.figure()
-    img_to_show = np.transpose(frameCollection[0].numpy(), (1, 2, 0))
-
-    img = plt.imshow(img_to_show, animated=True)
     figure.show()
 
    # colors = ['red', 'blue', 'green', 'yellow', 'orange']
-    for frame_id in range(n_frames):
+    for frame in reader.nextFrame():
+        # Original resolution -> desired resolution
+        img_to_show = resize(frame, (iHeight, iWidth), mode='reflect')
+
+        #(height, width, channel) -> (channel, height, width)
+        input_img[0] = trn(torch.from_numpy(np.transpose(img_to_show, (2, 0, 1))))
+
+        temp_var = avg_pool(model_rn18(Variable(input_img)))
+        rnn_input = temp_var.data.view(-1, n_inp)
+
         #plt.clf()
-        img_to_show = np.transpose(frameCollection[frame_id].numpy(), (1, 2, 0))
         plt.imshow(img_to_show)
         figure.canvas.draw()
 
         state = model.init_hidden(args.bs)
-        state = model.forward(Variable(rnn_input[:, frame_id]), state)
+        state = model.forward(Variable(rnn_input), state)
 
         #Get top N categories
         h0 = state[-1]
@@ -140,7 +125,6 @@ def evaluate(n_predictions = 3):
         for v,clazz in predictions:
             pred_txt = pred_txt + clazz +"  |  "
 
-        print(pred_txt)
         #plt.title("Frame" + str(frame_id))
         plt.title(pred_txt)
         #txt = figure.text(0,0,pred_txt,
