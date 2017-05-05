@@ -15,16 +15,14 @@ def repackage_hidden(h):
 
 
 class train():
-    def __init__(self, model, data_loader, data_len, n_inp, avg_pool, model_rn18, args):
+    def __init__(self, model, model_rn18, avg_pool, data_loader, data_len, n_inp, args):
 
         super(train, self).__init__()
         self.model = model
         self.data_loader = data_loader
         self.data_len = data_len
-        self.avg_pool = avg_pool
         self.model_rn18 = model_rn18
-        self.optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.eta)
-        self.loss_fn = nn.CrossEntropyLoss()
+        self.avg_pool = avg_pool
         self.args = args
         self.n_inp = n_inp
 
@@ -38,8 +36,9 @@ class train():
         args = self.args
         data_loader = self.data_loader
         model = self.model
-        loss_fn = self.loss_fn
 
+        optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.eta)
+        loss_fn = nn.CrossEntropyLoss()
         model.train()
         total_error = 0
         pbar = trange(len(data_loader.dataset), desc='Epoch {:03}'.format(epoch))
@@ -60,7 +59,7 @@ class train():
                 temp_variable = self.avg_pool(self.model_rn18(Variable(data_batch_seq[:, seq_idx])))
                 rnn_inputs[:, seq_idx] = temp_variable.data.view(-1, self.n_inp)
 
-            self.optimizer.zero_grad()
+            optimizer.zero_grad()
             for seq_idx in range(n_frames):
                 state = repackage_hidden(state)
                 state = model(Variable(rnn_inputs[:, seq_idx]), state)
@@ -78,7 +77,7 @@ class train():
             else:
                 loss = loss_fn(state[-1], Variable(target_batch_seq))
             loss.backward()
-            self.optimizer.step()
+            optimizer.step()
 
             # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
             # torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
