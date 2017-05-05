@@ -69,7 +69,9 @@ class TensorFolder(data.Dataset):
         path, target = self.tensors[index]
         input_tensor = self.loader(os.path.join(self.root, path))
         if self.transform is not None:
-            input_tensor = self.transform(input_tensor)
+            for i in range(len(input_tensor)):
+                input_tensor[i] = self.transform(input_tensor[i])
+
         if self.target_transform is not None:
             target = self.target_transform(target)
 
