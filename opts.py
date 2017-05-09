@@ -13,7 +13,7 @@ def get_args():
     _('--save',     type=str,   default='/media/HDD2/Models/', help='folder to save outputs')
     _('--model',    type=str,   default='models/model.py')
     _('--rnn_type', type=str,   default='LSTM', help='RNN | LSTM | GRU')
-    _('--dim',      type=int,   default=(160, 120), nargs=2, help='input image dimension as tuple (HxW)', metavar=('W', 'H'))
+    _('--dim',      type=int,   default=(176, 120), nargs=2, help='input image dimension as tuple (HxW)', metavar=('W', 'H'))
     _('--seq',      type=int,   default=10, help='sequence length')
     _('--bs',       type=int,   default=1, help='batch size')
     _('--lr',       type=float, default=1e-4, help='learning rate')

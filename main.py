@@ -15,6 +15,7 @@ from subprocess import call
 from opts import get_args           # Get all the input arguments
 from Models.model import ModelDef
 from train import train as trainClass
+from test import test as testClass
 import generateData
 
 print('\033[0;0f\033[0J')
@@ -57,15 +58,19 @@ if torch.cuda.is_available():
 prep_data = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
-data_obj = generateData.TensorFolder(root=data_dir, transform=prep_data)
-data_loader = DataLoader(data_obj, batch_size=args.bs, shuffle=True, num_workers=args.workers)
+data_obj_train = generateData.TensorFolder(root=data_dir + '/train/', transform=prep_data)
+data_loader_train = DataLoader(data_obj_train, batch_size=args.bs, shuffle=True, num_workers=args.workers)
 
-n_classes = len(data_obj.classes)
-data_len = len(data_obj)
+data_obj_test = generateData.TensorFolder(root=data_dir + '/test/', transform=prep_data)
+data_loader_test = DataLoader(data_obj_test, batch_size=args.bs, shuffle=True, num_workers=args.workers)
+
+n_classes = len(data_obj_train.classes)
+data_len_train = len(data_obj_train)
+data_len_test = len(data_obj_test)
 
 log_classes = open(args.save + 'categories.txt', 'w')
 for i in range(n_classes):
-    log_classes.write(str(i+1) + ',' + data_obj.classes[i])
+    log_classes.write(str(i+1) + ',' + data_obj_train.classes[i])
 log_classes.close()
 
 # Load pretrained ResNet18 model
@@ -96,30 +101,35 @@ def main():
     error_log = list()
     prev_error = 1000
 
-    train = trainClass(model, model_rn18, avg_pool, data_loader, data_len, n_inp, args)
+    train = trainClass(model, model_rn18, avg_pool, data_loader_train, data_len_train, n_inp, args)
+    test = testClass(model, model_rn18, avg_pool, data_loader_test, data_len_test, n_inp, args)
     for epoch in range(1, args.epochs):
-        total_error = train.forward(epoch)
+        total_train_error = train.forward(epoch)
+        total_test_error = test.forward(epoch)
         print('{}{:-<50}{}'.format(CP_R, '', CP_C))
         print('{}Epoch #: {}{:03} | {}Training Error: {}{:.6f}'.format(
-            CP_B, CP_C, epoch, CP_B, CP_C, total_error))
-        error_log.append(total_error)
+            CP_B, CP_C, epoch, CP_B, CP_C, total_train_error))
+        print('{}Epoch #: {}{:03} | {}Testing Error: {}{:.6f}'.format(
+            CP_B, CP_C, epoch, CP_B, CP_C, total_test_error))
+        error_log.append((total_train_error, total_test_error))
 
         # Save weights and model definition
-        if total_error <= prev_error:
-            prev_error = total_error
+        if total_test_error <= prev_error:
+            prev_error = total_test_error
             print(CP_G + "Saving model!!!" + CP_C)
             print('{}{:-<50}{}\n'.format(CP_R, '', CP_C))
             torch.save(model.state_dict(), args.save + "/model.pt")
             torch.save(ModelDef, args.save + "/modelDef.pt")
 
     train.logger_bw.close()
+    test.logger_bw.close()
 
     # Log batchwise error
     logger = open(args.save + '/error.log', 'w')
-    logger.write('{:10}'.format('Train Error'))
-    logger.write('\n{:-<10}'.format(''))
+    logger.write('{:10} {:10}'.format('Train Error', 'Test Error'))
+    logger.write('\n{:-<20}'.format(''))
     for total_error in error_log:
-        logger.write('\n{:.6f}'.format(total_error))
+        logger.write('\n{:.6f} {:.6f}'.format(total_error[0], total_error[1]))
     logger.close()
 
 
