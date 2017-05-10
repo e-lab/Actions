@@ -104,13 +104,13 @@ def main():
     train = trainClass(model, model_rn18, avg_pool, data_loader_train, data_len_train, n_inp, args)
     test = testClass(model, model_rn18, avg_pool, data_loader_test, data_len_test, n_inp, args)
     for epoch in range(1, args.epochs):
-        total_train_error = train.forward(epoch)
-        total_test_error = test.forward(epoch)
+        total_train_error = train.forward()
+        total_test_error = test.forward()
         print('{}{:-<50}{}'.format(CP_R, '', CP_C))
-        print('{}Epoch #: {}{:03} | {}Training Error: {}{:.6f}'.format(
-            CP_B, CP_C, epoch, CP_B, CP_C, total_train_error))
-        print('{}Epoch #: {}{:03} | {}Testing Error: {}{:.6f}'.format(
-            CP_B, CP_C, epoch, CP_B, CP_C, total_test_error))
+        print('{}Epoch #: {}{:03}'.format(
+            CP_B, CP_C, epoch))
+        print('{}Training Error: {}{:.6f} | {}Testing Error: {}{:.6f}'.format(
+            CP_B, CP_C, total_train_error, CP_B, CP_C, total_test_error))
         error_log.append((total_train_error, total_test_error))
 
         # Save weights and model definition

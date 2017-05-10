@@ -32,7 +32,7 @@ class train():
         self.logger_bw.write('\n{:-<10}'.format(''))
 
 
-    def forward(self, epoch):
+    def forward(self):
         args = self.args
         data_loader = self.data_loader
         model = self.model
@@ -41,7 +41,7 @@ class train():
         loss_fn = nn.CrossEntropyLoss()
         model.train()
         total_error = 0
-        pbar = trange(len(data_loader.dataset), desc='Epoch {:03}'.format(epoch))
+        pbar = trange(len(data_loader.dataset), desc='Training ')
         for batch_idx, (data_batch_seq, target_batch_seq) in enumerate(data_loader):
             # Data is of the dimension: batch_size x frames x 3 x height x width
             n_frames = data_batch_seq.size(1)
@@ -87,10 +87,7 @@ class train():
                     pbar.update(10)
                 else:
                     pbar.update(len(data_loader.dataset) - batch_idx*len(data_batch_seq))
-                '''print('Train Epoch: {:03} [{:03}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, batch_idx * len(data_batch_seq), len(data_loader.dataset),
-                    100. * batch_idx / len(data_loader), loss.data[0]))
-                '''
+
             total_error += loss.data[0]         # Total loss
         total_error = total_error/math.ceil(self.data_len/args.bs)
         pbar.close()
