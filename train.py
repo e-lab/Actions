@@ -15,16 +15,14 @@ def repackage_hidden(h):
 
 
 class train():
-    def __init__(self, model, model_rn18, avg_pool, data_loader, data_len, n_inp, args):
+    def __init__(self, model, data_loader, data_len, n_classes, args):
 
         super(train, self).__init__()
         self.model = model
         self.data_loader = data_loader
         self.data_len = data_len
-        self.model_rn18 = model_rn18
-        self.avg_pool = avg_pool
         self.args = args
-        self.n_inp = n_inp
+        self.n_classes = n_classes
 
         # Error logger
         self.logger_bw = open(args.save + '/error_bw.log', 'w')
@@ -42,40 +40,41 @@ class train():
         model.train()
         total_error = 0
         pbar = trange(len(data_loader.dataset), desc='Training ')
+        input_3Dsequence = torch.FloatTensor(1, 3, 6, args.dim[1], args.dim[0])
+        y = torch.FloatTensor(1, self.n_classes)
+        if args.cuda:
+            input_3Dsequence = input_3Dsequence.cuda()
+            y = y.cuda()
+
         for batch_idx, (data_batch_seq, target_batch_seq) in enumerate(data_loader):
             # Data is of the dimension: batch_size x frames x 3 x height x width
             n_frames = data_batch_seq.size(1)
-            # RNN input should be: batch_size x frames x neurons
-            rnn_inputs = torch.FloatTensor(args.bs, n_frames, self.n_inp)
             state = model.init_hidden(args.bs)
 
             if args.cuda:  # Convert into CUDA tensors
                 target_batch_seq = target_batch_seq.cuda()
                 data_batch_seq = data_batch_seq.cuda()
-                rnn_inputs = rnn_inputs.cuda()
-
-            # Get the output of resnet-18 for individual batch per video
-            for seq_idx in range(n_frames):
-                temp_variable = self.avg_pool(self.model_rn18(Variable(data_batch_seq[:, seq_idx])))
-                rnn_inputs[:, seq_idx] = temp_variable.data.view(-1, self.n_inp)
 
             optimizer.zero_grad()
+            seq_pointer = 0
             for seq_idx in range(n_frames):
-                state = repackage_hidden(state)
-                state = model(Variable(rnn_inputs[:, seq_idx]), state)
-                temp_loss = 0
-                if args.rnn_type == 'LSTM':
-                    temp_loss = loss_fn(state[-1][0], Variable(target_batch_seq))
+                if(seq_pointer % 2 == 0):
+                    input_3Dsequence[0, :, seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
                 else:
-                    temp_loss = loss_fn(state[-1], Variable(target_batch_seq))
-                # Log batchwise error
-                self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
+                    input_3Dsequence[0, :, 3 + seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+                seq_pointer += 1
 
-            loss = 0
-            if args.rnn_type == 'LSTM':
-                loss = loss_fn(state[-1][0], Variable(target_batch_seq))
-            else:
-                loss = loss_fn(state[-1], Variable(target_batch_seq))
+                state = repackage_hidden(state)
+
+                if seq_pointer == 6:
+                    y, state = model(Variable(input_3Dsequence), state)
+                    temp_loss = loss_fn(y, Variable(target_batch_seq))
+                    seq_pointer = 0
+
+                    # Log batchwise error
+                    self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
+
+            loss = loss_fn(y, Variable(target_batch_seq))
             loss.backward()
             optimizer.step()
 
@@ -92,4 +91,3 @@ class train():
         total_error = total_error/math.ceil(self.data_len/args.bs)
         pbar.close()
         return total_error
-

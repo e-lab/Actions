@@ -40,40 +40,39 @@ class test():
         loss_fn = nn.CrossEntropyLoss()
         model.eval()
         total_error = 0
+        input_3Dsequence = torch.FloatTensor(1, 3, 6, args.dim[1], args.dim[0])
+        y = torch.FloatTensor(1, self.n_classes)
+        if args.cuda:
+            input_3Dsequence = input_3Dsequence.cuda()
+            y = y.cuda()
+
         pbar = trange(len(data_loader.dataset), desc='Testing  ')
+
         for batch_idx, (data_batch_seq, target_batch_seq) in enumerate(data_loader):
             # Data is of the dimension: batch_size x frames x 3 x height x width
             n_frames = data_batch_seq.size(1)
-            # RNN input should be: batch_size x frames x neurons
-            rnn_inputs = torch.FloatTensor(args.bs, n_frames, self.n_inp)
             state = model.init_hidden(args.bs)
 
             if args.cuda:  # Convert into CUDA tensors
                 target_batch_seq = target_batch_seq.cuda()
                 data_batch_seq = data_batch_seq.cuda()
-                rnn_inputs = rnn_inputs.cuda()
 
-            # Get the output of resnet-18 for individual batch per video
+            seq_pointer = 0
             for seq_idx in range(n_frames):
-                temp_variable = self.avg_pool(self.model_rn18(Variable(data_batch_seq[:, seq_idx])))
-                rnn_inputs[:, seq_idx] = temp_variable.data.view(-1, self.n_inp)
+                input_3Dsequence[0, :, seq_pointer, :, :] = data_batch_seq[:, seq_idx]
+                seq_pointer += 1
 
-            for seq_idx in range(n_frames):
                 state = repackage_hidden(state)
-                state = model(Variable(rnn_inputs[:, seq_idx]), state)
-                temp_loss = 0
-                if args.rnn_type == 'LSTM':
-                    temp_loss = loss_fn(state[-1][0], Variable(target_batch_seq))
-                else:
-                    temp_loss = loss_fn(state[-1], Variable(target_batch_seq))
-                # Log batchwise error
-                self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
 
-            loss = 0
-            if args.rnn_type == 'LSTM':
-                loss = loss_fn(state[-1][0], Variable(target_batch_seq))
-            else:
-                loss = loss_fn(state[-1], Variable(target_batch_seq))
+                if seq_pointer == 6:
+                    y, state = model(Variable(input_3Dsequence), state)
+                    temp_loss = loss_fn(y[-1], Variable(target_batch_seq))
+                    seq_pointer = 0
+
+                    # Log batchwise error
+                    self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
+
+            loss = loss_fn(y[-1], Variable(target_batch_seq))
 
             # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
             # torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
