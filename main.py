@@ -71,7 +71,9 @@ log_classes.close()
 
 
 # Load model
-model = ModelDef(n_classes)        # Network architecture is stored here
+model = ModelDef([512, 256, n_classes], args.rnn_type)        # Network architecture is stored here
+print(model)
+input()
 
 if args.cuda:
     model.cuda()
