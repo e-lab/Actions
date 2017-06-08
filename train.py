@@ -58,10 +58,12 @@ class train():
             optimizer.zero_grad()
             seq_pointer = 0
             for seq_idx in range(n_frames):
-                if(seq_pointer % 2 == 0):
-                    input_3Dsequence[0, :, seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
-                else:
-                    input_3Dsequence[0, :, 3 + seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+                # if(seq_pointer % 2 == 0):
+                #     input_3Dsequence[0, :, seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+                # else:
+                #     input_3Dsequence[0, :, 3 + seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+
+                input_3Dsequence[0, :, seq_pointer, :, :] = data_batch_seq[:, seq_idx]
                 seq_pointer += 1
 
                 state = repackage_hidden(state)
@@ -71,6 +73,11 @@ class train():
                     temp_loss = loss_fn(y, Variable(target_batch_seq))
                     seq_pointer = 0
 
+                    # Log batchwise error
+                    if args.rnn_type == 'LSTM':
+                        temp_loss = loss_fn(y, Variable(target_batch_seq))
+                    else:
+                        temp_loss = loss_fn(y, Variable(target_batch_seq))
                     # Log batchwise error
                     self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
 
