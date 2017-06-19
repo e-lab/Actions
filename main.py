@@ -133,7 +133,6 @@ def main():
             conf_logger.write('\n{:-<20}\n'.format(''))
             for value in confusion_matrix_test.metric.items():
                 conf_logger.write('{}: {}\n'.format(value[0], value[1]))
-            conf_logger.write('\n{}'.format(confusion_matrix_test.metric))
             conf_logger.write('\n{:-<20}'.format(''))
             conf_logger.close()
 

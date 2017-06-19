@@ -295,7 +295,6 @@ person13_boxing_d3 1 80 81 212 213 296 297 419
 person13_boxing_d4 1 109 110 239 240 352 353 420
 person13_handclapping_d1 1 124 125 223 224 322 323 396
 person13_handclapping_d2 1 100 101 275 305 400 401 523
-person13_handclapping_d3 *missing*
 person13_handclapping_d4 1 132 133 234 235 335 336 443
 person13_handwaving_d1 1 80 100 255 256 407 408 520
 person13_handwaving_d2 1 116 117 225 226 333 334 492
