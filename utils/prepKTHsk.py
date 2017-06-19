@@ -16,7 +16,7 @@ _('--dim',   type=int, default=(160, 120), nargs=2, help='input image dimension 
 print('\033[0;0f\033[0J')
 args = parser.parse_args()
 
-f = open(args.data + '/tvt_split.txt', 'r')
+f = open('utils/tvt_split.txt', 'r')
 
 # maps personID to tvt set
 split_dict = {}

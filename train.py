@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 from tqdm import trange
 import math
+import torchnet.meter as meter
 
 
 def repackage_hidden(h):
@@ -25,9 +26,12 @@ class train():
         self.n_classes = n_classes
 
         # Error logger
-        self.logger_bw = open(args.save + '/error_bw.log', 'w')
-        self.logger_bw.write('{:10}'.format('Train Error'))
-        self.logger_bw.write('\n{:-<10}'.format(''))
+        # self.logger_bw = open(args.save + '/error_bw.log', 'w')
+        # self.logger_bw.write('{:10}'.format('Train Error'))
+        # self.logger_bw.write('\n{:-<10}'.format(''))
+
+        # Confusion Matrix
+        self.mtr = meter.ConfusionMeter(k=n_classes)
 
 
     def forward(self):
@@ -35,11 +39,11 @@ class train():
         data_loader = self.data_loader
         model = self.model
 
+        self.mtr.reset()
         optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.eta)
         loss_fn = nn.CrossEntropyLoss()
         model.train()
         total_error = 0
-        pbar = trange(len(data_loader.dataset), desc='Training ')
         input_3Dsequence = torch.FloatTensor(1, 3, 6, args.dim[1], args.dim[0])
         y = Variable(torch.FloatTensor(1, self.n_classes))
         dummy_target = torch.LongTensor(1)
@@ -50,6 +54,7 @@ class train():
             y = y.cuda()
             dummy_target = dummy_target.cuda()
 
+        pbar = trange(len(data_loader.dataset), desc='Training ')
         loss = loss_fn(y, Variable(dummy_target))
         for batch_idx, (data_batch_seq, target_batch_seq) in enumerate(data_loader):
             # Data is of the dimension: batch_size x frames x 3 x height x width
@@ -78,11 +83,13 @@ class train():
                     temp_loss = loss_fn(y, Variable(target_batch_seq))
                     seq_pointer = 0
 
-                    self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
+                    # self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
 
             loss = loss_fn(y, Variable(target_batch_seq))
             loss.backward()
             optimizer.step()
+
+            self.mtr.add(y.data, target_batch_seq)
 
             # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
             # torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
@@ -94,6 +101,7 @@ class train():
                     pbar.update(len(data_loader.dataset) - batch_idx*len(data_batch_seq))
 
             total_error += loss.data[0]         # Total loss
+
         total_error = total_error/math.ceil(self.data_len/args.bs)
         pbar.close()
         return total_error

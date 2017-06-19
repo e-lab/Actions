@@ -11,7 +11,7 @@ def get_args():
     _ = parser.add_argument
     _('--data',     type=str,   default='/media/HDD2/Models/', help='dataset location')
     _('--save',     type=str,   default='/media/HDD2/Models/', help='folder to save outputs')
-    _('--model',    type=str,   default='models/model.py', help='model definition')
+    _('--model',    type=str,   default='Models/model.py', help='model definition')
     _('--rnn_type', type=str,   default='RNN', help='RNN | LSTM | GRU')
     _('--dim',      type=int,   default=(160, 120), nargs=2, help='input image dimension as tuple (HxW)', metavar=('W', 'H'))
     _('--seq',      type=int,   default=10, help='sequence length')
