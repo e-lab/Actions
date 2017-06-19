@@ -38,7 +38,7 @@ args_log = open(args.save + '/args.log', 'w')
 args_log.write(str(args))
 args_log.close()
 # Save model definiton script
-call(["cp", "./Models/model.py", args.save])
+call(["cp", args.model, args.save])
 
 seq_len = args.seq
 data_dir = args.data
@@ -78,8 +78,6 @@ input()
 if args.cuda:
     model.cuda()
 # model = nn.DataParallel(net, device_ids=[0,1,2,3])
-
-state = model.init_hidden(args.bs)
 
 
 def main():

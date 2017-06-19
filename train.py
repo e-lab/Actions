@@ -41,11 +41,16 @@ class train():
         total_error = 0
         pbar = trange(len(data_loader.dataset), desc='Training ')
         input_3Dsequence = torch.FloatTensor(1, 3, 6, args.dim[1], args.dim[0])
-        y = torch.FloatTensor(1, self.n_classes)
+        y = Variable(torch.FloatTensor(1, self.n_classes))
+        dummy_target = torch.LongTensor(1)
+        dummy_target[0] = 1
+
         if args.cuda:
             input_3Dsequence = input_3Dsequence.cuda()
             y = y.cuda()
+            dummy_target = dummy_target.cuda()
 
+        loss = loss_fn(y, Variable(dummy_target))
         for batch_idx, (data_batch_seq, target_batch_seq) in enumerate(data_loader):
             # Data is of the dimension: batch_size x frames x 3 x height x width
             n_frames = data_batch_seq.size(1)
@@ -66,19 +71,13 @@ class train():
                 input_3Dsequence[0, :, seq_pointer, :, :] = data_batch_seq[:, seq_idx]
                 seq_pointer += 1
 
-                state = repackage_hidden(state)
 
                 if seq_pointer == 6:
+                    state = repackage_hidden(state)
                     y, state = model(Variable(input_3Dsequence), state)
                     temp_loss = loss_fn(y, Variable(target_batch_seq))
                     seq_pointer = 0
 
-                    # Log batchwise error
-                    if args.rnn_type == 'LSTM':
-                        temp_loss = loss_fn(y, Variable(target_batch_seq))
-                    else:
-                        temp_loss = loss_fn(y, Variable(target_batch_seq))
-                    # Log batchwise error
                     self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
 
             loss = loss_fn(y, Variable(target_batch_seq))

@@ -21,6 +21,7 @@ class ModelDef(nn.Module):
         self.branch1 = ModelBranch()
         self.branch2 = ModelBranch()
 
+        self.h_n = h_n
         self.Conv2D1 = BasicConv2D(128, 256, (3,3), stride=(1,1), pad=(1,1), pool=True)
         self.Conv2D2 = BasicConv2D(256, 512, (3,3), stride=(1,1), pad=(1,1), pool=True)
         self.Conv2D3 = BasicConv2D(512, 512, (3,3), stride=(1,1), pad=(1,1), pool=True)
@@ -53,7 +54,7 @@ class ModelDef(nn.Module):
         x2 = self.branch2(x)
 
         # 2D convolution
-        y = torch.cat((x1, x2, h0), 1)
+        y = torch.cat((x1, x2), 1)
         # y = 128x40x15
         y = self.Conv2D1(y)
         # x = 256x20x15
