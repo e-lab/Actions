@@ -85,7 +85,7 @@ confusion_matrix_test = ConfusionMatrix(n_classes)
 
 def main():
     print("\n\033[94m\033[1me-Lab Gesture Recognition Training Script\033[0m\n")
-    prev_error = 1000
+    prev_accuracy = -1
 
     # Log batchwise error
     logger = open(args.save + '/error.log', 'w')
@@ -110,9 +110,10 @@ def main():
             CP_B, CP_C, total_train_error, CP_B, CP_C, total_test_error))
 
         logger.write('\n{:.6f} {:.6f}'.format(total_train_error, total_test_error))
+        accuracy = confusion_matrix_test.accuracy
         # Save weights and model definition
-        if total_test_error <= prev_error:
-            prev_error = total_test_error
+        if accuracy >= prev_accuracy:
+            prev_accuracy = total_test_error
             print(CP_G + "Saving model!!!" + CP_C)
             print('{}{:-<50}{}\n'.format(CP_R, '', CP_C))
             torch.save(model.state_dict(), args.save + "/model.pt")
@@ -122,17 +123,25 @@ def main():
             conf_logger.write('\nTrain:')
             conf_logger.write('\n{:-<20}'.format(''))
             conf_logger.write('\n{}'.format(confusion_matrix_train.classwise_accuracy))
-            conf_logger.write('\n{:-<20}\n'.format(''))
+            conf_logger.write('\n{:-<20}'.format(''))
+            for value in confusion_matrix_train.classwise_metric.items():
+                conf_logger.write('\n{}: {}'.format(value[0], value[1]))
+            conf_logger.write('\n{:-<20}'.format(''))
             for value in confusion_matrix_train.metric.items():
-                conf_logger.write('{}: {}\n'.format(value[0], value[1]))
+                conf_logger.write('\n{}: {}'.format(value[0], value[1]))
+            conf_logger.write('\nGlobal Accuracy: {}'.format(confusion_matrix_train.accuracy))
             conf_logger.write('\n{:-<20}'.format(''))
             conf_logger.write('\n{:-<20}'.format(''))
             conf_logger.write('\nTest:')
             conf_logger.write('\n{:-<20}'.format(''))
             conf_logger.write('\n{}'.format(confusion_matrix_test.classwise_accuracy))
-            conf_logger.write('\n{:-<20}\n'.format(''))
+            conf_logger.write('\n{:-<20}'.format(''))
+            for value in confusion_matrix_test.classwise_metric.items():
+                conf_logger.write('\n{}: {}'.format(value[0], value[1]))
+            conf_logger.write('\n{:-<20}'.format(''))
             for value in confusion_matrix_test.metric.items():
-                conf_logger.write('{}: {}\n'.format(value[0], value[1]))
+                conf_logger.write('\n{}: {}'.format(value[0], value[1]))
+            conf_logger.write('\nGlobal Accuracy: {}'.format(confusion_matrix_test.accuracy))
             conf_logger.write('\n{:-<20}'.format(''))
             conf_logger.close()
 
