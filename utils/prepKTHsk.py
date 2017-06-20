@@ -16,7 +16,7 @@ _('--dim',   type=int, default=(160, 120), nargs=2, help='input image dimension 
 print('\033[0;0f\033[0J')
 args = parser.parse_args()
 
-f = open('utils/tvt_split.txt', 'r')
+f = open('tvt_split.txt', 'r')
 
 # maps personID to tvt set
 split_dict = {}
@@ -25,6 +25,12 @@ for i in range(3):
     for j in range(len(file_line) - 1):
         split_dict.update({file_line[j+1]: file_line[0]})
 
+classmap = {'boxing': 1,
+            'handclapping': 2,
+            'handwaving': 3,
+            'jogging': 4,
+            'running': 5,
+            'walking': 6}
 
 iWidth = args.dim[0]
 iHeight = args.dim[1]
@@ -37,11 +43,11 @@ if not os.path.exists(rootDirSave):
     os.makedirs(rootDirSave + '/Test')
 
 rootDirLoad = args.data
-pbar1 = trange(600, ncols=100, position=0, desc='Overall progress      ')
+pbar1 = trange(599, ncols=100, position=0, desc='Overall progress      ')
 classes = []
 
 dataList = open(rootDirSave + "/dataList.txt", "w")
-dataList.write('{:12} {:12} {:12}'.format('Class name', '# of Frames', 'Filename'))
+dataList.write('{:8} {:12} {:12} {:12} {:12}'.format('Class ID', 'Class name', 'Mode', '# of Frames', 'Filename'))
 dataList.write('\n{:-<47}'.format(''))
 
 
@@ -64,7 +70,6 @@ while file_line:
         nFrames = reader.getShape()[0]
 
         nVideos += 1
-        dataList.write('\n{:12} {:<12} {:02}.pyt'.format(subDir, nFrames, nVideos))
         pbar2 = trange(nFrames, ncols=100, position=2, desc='Video progress        ')
 
         frameCount = 0
@@ -83,11 +88,14 @@ while file_line:
 
             pbar2.update(1)
 
+        pbar2.close()
         # Split video into chunks and save them
         for sequenceIdx in range((len(file_line)-1)//2):
             startIdx = (int(file_line[2*sequenceIdx + 1])-1) // (args.skip+1)
             stopIdx = int(file_line[2*sequenceIdx + 2]) // (args.skip+1)
             torch.save(frameCollection[startIdx : stopIdx], os.path.join(classDir, '{:02}_{:02}.pyt'.format(nVideos, (sequenceIdx + 1))))
+            dataList.write('\n{:8} {:12} {:12} {:<12} {:02}_{:02}.pyt'
+                    .format(classmap[subDir], subDir, split_dict[personID], (stopIdx - startIdx), nVideos, (sequenceIdx + 1)))
 
     pbar1.update(1)
     file_line = f.readline()
