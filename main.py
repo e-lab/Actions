@@ -1,5 +1,10 @@
-# Python imports
 import torch
+from opts import get_args           # Get all the input arguments
+args = get_args()                   # Holds all the input argument
+
+torch.manual_seed(args.seed)        # Set random seed manually
+
+# Python imports
 import torch.optim as optim
 import torch.nn as nn
 import torchvision.models as models
@@ -12,7 +17,6 @@ import math
 from subprocess import call
 
 # Local imports
-from opts import get_args           # Get all the input arguments
 from Models.model import ModelDef
 from utils.confusionMatrix import ConfusionMatrix
 from train import train as trainClass
@@ -26,8 +30,6 @@ CP_G = '\033[32m'
 CP_B = '\033[34m'
 CP_Y = '\033[33m'
 CP_C = '\033[0m'
-
-args = get_args()                   # Holds all the input argument
 
 #ModelDef = getattr(__import__(args.model, fromlist=['ModelDef']), 'ModelsDef')  # Get the model definition
 
@@ -45,7 +47,6 @@ seq_len = args.seq
 data_dir = args.data
 i_width, i_height = args.dim
 
-torch.manual_seed(args.seed)        # Set random seed manually
 if torch.cuda.is_available():
     if not args.cuda:
         print(CP_G + "WARNING: You have a CUDA device, so you should probably run with --cuda" + CP_C)
@@ -65,14 +66,14 @@ n_classes = len(data_obj_train.classes)
 data_len_train = len(data_obj_train)
 data_len_test = len(data_obj_test)
 
-log_classes = open(args.save + 'categories.txt', 'w')
+log_classes = open(args.save + '/categories.txt', 'w')
 for i in range(n_classes):
     log_classes.write(str(i+1) + ',' + data_obj_train.classes[i])
 log_classes.close()
 
 
 # Load model
-model = ModelDef([512, 256, n_classes], args.rnn_type)        # Network architecture is stored here
+model = ModelDef([512, n_classes], args.rnn_type)        # Network architecture is stored here
 print(model)
 
 if args.cuda:
@@ -111,9 +112,10 @@ def main():
 
         logger.write('\n{:.6f} {:.6f}'.format(total_train_error, total_test_error))
         accuracy = confusion_matrix_test.accuracy
+        print(accuracy)
         # Save weights and model definition
         if accuracy >= prev_accuracy:
-            prev_accuracy = total_test_error
+            prev_accuracy = accuracy
             print(CP_G + "Saving model!!!" + CP_C)
             print('{}{:-<50}{}\n'.format(CP_R, '', CP_C))
             torch.save(model.state_dict(), args.save + "/model.pt")

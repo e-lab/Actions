@@ -13,6 +13,7 @@ def get_args():
     _('--save',     type=str,   default='/media/HDD2/Models/', help='folder to save outputs')
     _('--model',    type=str,   default='Models/model.py', help='model definition')
     _('--rnn_type', type=str,   default='RNN', help='RNN | LSTM | GRU')
+    _('--conv_type',type=str,   default='dilated', help='dilated | strided')
     _('--dim',      type=int,   default=(160, 120), nargs=2, help='input image dimension as tuple (HxW)', metavar=('W', 'H'))
     _('--seq',      type=int,   default=10, help='sequence length')
     _('--bs',       type=int,   default=1, help='batch size')
@@ -23,5 +24,6 @@ def get_args():
     _('--devID',    type=int,   default=0, help='GPU ID to be used')
     _('--workers',  type=int,   default=0, help='number of workers for data loader')
     _('--cuda',     action='store_true', help='use CUDA')
+    _('--oneLoss',  action='store_true', help='calculate loss based on last frame')
     args = parser.parse_args()
     return args

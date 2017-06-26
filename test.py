@@ -44,14 +44,14 @@ class test():
         model.eval()
         total_error = 0
         input_3Dsequence = torch.FloatTensor(1, 3, 6, args.dim[1], args.dim[0])
-        y = Variable(torch.FloatTensor(1, self.n_classes))
+
         if args.cuda:
             input_3Dsequence = input_3Dsequence.cuda()
-            y = y.cuda()
 
         pbar = trange(len(data_loader.dataset), desc='Testing  ')
-
         for batch_idx, (data_batch_seq, target_batch_seq) in enumerate(data_loader):
+            total_loss = 0
+            nFrames = 0
             # Data is of the dimension: batch_size x frames x 3 x height x width
             n_frames = data_batch_seq.size(1)
             state = model.init_hidden(args.bs)
@@ -62,25 +62,28 @@ class test():
 
             seq_pointer = 0
             for seq_idx in range(n_frames):
-                # if(seq_pointer % 2 == 0):
-                #     input_3Dsequence[0, :, seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
-                # else:
-                #     input_3Dsequence[0, :, 3 + seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+                if args.conv_type == 'dilated':
+                    if(seq_pointer % 2 == 0):
+                        input_3Dsequence[0, :, seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+                    else:
+                        input_3Dsequence[0, :, 3 + seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+                else:
+                    input_3Dsequence[0, :, seq_pointer, :, :] = data_batch_seq[:, seq_idx]
 
-                input_3Dsequence[0, :, seq_pointer, :, :] = data_batch_seq[:, seq_idx]
                 seq_pointer += 1
 
                 if seq_pointer == 6:
                     state = repackage_hidden(state)
 
                     y, state = model(Variable(input_3Dsequence), state)
-                    temp_loss = loss_fn(y, Variable(target_batch_seq))
                     seq_pointer = 0
 
                     # Log batchwise error
                     # self.logger_bw.write('\n{:.6f}'.format(temp_loss.data[0]))
 
-            loss = loss_fn(y, Variable(target_batch_seq))
+                    loss = loss_fn(y, Variable(target_batch_seq))
+                    total_loss = loss if args.oneLoss else (total_loss + loss)
+                    nFrames += 1
 
             self.mtr.add(y.data, target_batch_seq)
 
@@ -93,7 +96,8 @@ class test():
                 else:
                     pbar.update(len(data_loader.dataset) - batch_idx*len(data_batch_seq))
 
-            total_error += loss.data[0]         # Total loss
+            total_error += total_loss.data[0]         # Total loss
+            total_error /= 1 if args.oneLoss else nFrames
 
         total_error = total_error/math.ceil(self.data_len/args.bs)
         pbar.close()
