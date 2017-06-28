@@ -17,7 +17,7 @@ import math
 from subprocess import call
 
 # Local imports
-from Models.model import ModelDef
+from Models.model2 import ModelDef
 from utils.confusionMatrix import ConfusionMatrix
 from train import train as trainClass
 from test import test as testClass
@@ -68,7 +68,7 @@ data_len_test = len(data_obj_test)
 
 log_classes = open(args.save + '/categories.txt', 'w')
 for i in range(n_classes):
-    log_classes.write(str(i+1) + ',' + data_obj_train.classes[i])
+    log_classes.write(str(i+1) + ': ' + data_obj_train.classes[i] + '\n')
 log_classes.close()
 
 
@@ -92,6 +92,7 @@ def main():
     logger = open(args.save + '/error.log', 'w')
     logger.write('{:10} {:10}'.format('Train Error', 'Test Error'))
     logger.write('\n{:-<20}'.format(''))
+    logger.close()
 
     train = trainClass(model, data_loader_train, data_len_train, n_classes, args)
     test = testClass(model, data_loader_test, data_len_test, n_classes, args)
@@ -110,7 +111,9 @@ def main():
         print('{}Training Error: {}{:.6f} | {}Testing Error: {}{:.6f}'.format(
             CP_B, CP_C, total_train_error, CP_B, CP_C, total_test_error))
 
+        logger = open(args.save + '/error.log', 'a')
         logger.write('\n{:.6f} {:.6f}'.format(total_train_error, total_test_error))
+        logger.close()
         accuracy = confusion_matrix_test.accuracy
         print(accuracy)
         # Save weights and model definition
@@ -150,7 +153,6 @@ def main():
 
     # train.logger_bw.close()
     # test.logger_bw.close()
-    logger.close()
 
 
 if __name__ == "__main__":

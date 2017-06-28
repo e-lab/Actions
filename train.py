@@ -66,11 +66,11 @@ class train():
             for seq_idx in range(n_frames):
                 if args.conv_type == 'dilated':
                     if(seq_pointer % 2 == 0):
-                        input_3Dsequence[0, :, seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+                        input_3Dsequence[0, :, seq_pointer//2, :, :] = data_batch_seq[0, seq_idx]
                     else:
-                        input_3Dsequence[0, :, 3 + seq_pointer//2, :, :] = data_batch_seq[:, seq_idx]
+                        input_3Dsequence[0, :, 3 + seq_pointer//2, :, :] = data_batch_seq[0, seq_idx]
                 else:
-                    input_3Dsequence[0, :, seq_pointer, :, :] = data_batch_seq[:, seq_idx]
+                    input_3Dsequence[0, :, seq_pointer, :, :] = data_batch_seq[0, seq_idx]
 
                 seq_pointer += 1
 
