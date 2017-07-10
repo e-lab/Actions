@@ -30,9 +30,11 @@ class ModelDef(nn.Module):
                     x_n = h_n[i-1]
 
                 nonlinearity = 'tanh'
+                dropout = True
                 if(i == len(h_n) - 1):
-                    nonlinearity = None
-                self.rnn.append(RNNCell(x_n, h_n[i], h_n[i], nonlinearity))
+                    nonlinearity = False
+                    dropout = False
+                self.rnn.append(RNNCell(x_n, h_n[i], h_n[i], nonlinearity, dropout))
         else:
             for i in range(len(h_n)):
                 if i > 0:
@@ -66,14 +68,18 @@ class ModelDef(nn.Module):
 
 
 class RNNCell(nn.Module):
-    def __init__(self, n_ip, n_h, n_op, nonlinearity):
+    def __init__(self, n_ip, n_h, n_op, nonlinearity, dropout):
         super(RNNCell, self).__init__()
         self.nonlinearity = nonlinearity
         self.linear = nn.Linear(n_ip+n_h, n_op)
+        self.dropout = dropout
+        self.dpout = nn.Dropout(p=0.1)
 
     def forward(self, x, h):
         x_cat = torch.cat((x, h), 1)
         y = self.linear(x_cat)
+        if self.dropout:
+            y = self.dpout(y)
         if self.nonlinearity:
             y = F.relu(y, inplace=True)
 
@@ -89,12 +95,12 @@ class ModelBranch(nn.Module):
         self.Conv3D1 = BasicConv3D(3, 32, (3,3,3), stride=(3,1,1), pad=(0,1,1))
         self.Conv3D2 = BasicConv3D(32, 64, (2,3,3), stride=(1,1,1), pad=(0,1,1))
 
-        self.Conv2D1 = BasicConv2D(64, 128, (3,3), stride=(1,1), pad=(1,1), pool=True)
-        self.Conv2D2 = BasicConv2D(128, 256, (3,3), stride=(1,1), pad=(1,1), pool=True)
-        self.Conv2D3 = BasicConv2D(256, 256, (3,3), stride=(1,1), pad=(1,1), pool=True)
+        self.Conv2D1 = BasicConv2D(64, 128, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=True)
+        self.Conv2D2 = BasicConv2D(128, 256, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=True)
+        self.Conv2D3 = BasicConv2D(256, 256, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=True)
         self.Conv2D4 = nn.Conv2d(256, 256, (3,3), stride=(1,1), padding=(1,1))
 
-        self.avgpool2D = nn.AvgPool2d((4,5), stride=(1,1), padding=(0,0))
+        self.avgpool2D = nn.AvgPool2d((2,3), stride=(1,1), padding=(0,0))
 
     def forward(self, x):
         # x = 3x6x160x120
@@ -131,15 +137,19 @@ class BasicConv3D(nn.Module):
 
 
 class BasicConv2D(nn.Module):
-    def __init__(self, iChannels, oChannels, kernel, stride, pad, pool):
+    def __init__(self, iChannels, oChannels, kernel, stride, pad, pool, dropout):
         super(BasicConv2D, self).__init__()
         self.Conv2D = nn.Conv2d(iChannels, oChannels, kernel, stride, pad)
+        self.dropout = dropout
+        self.dpout = nn.Dropout2d(p=0.1)
         self.pool = pool
         if pool:
             self.pool2D = nn.MaxPool2d((3,3), stride=(2,2), padding=(1,1))
 
     def forward(self, x):
         x = self.Conv2D(x)
+        if self.dropout:
+            x = self.dpout(x)
         if self.pool:
             x = self.pool2D(x)
         x = F.relu(x, inplace=True)
