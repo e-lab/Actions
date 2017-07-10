@@ -15,10 +15,10 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 
-class train():
+class Train():
     def __init__(self, model, data_loader, data_len, n_classes, args):
 
-        super(train, self).__init__()
+        super(Train, self).__init__()
         self.model = model
         self.data_loader = data_loader
         self.data_len = data_len
@@ -34,12 +34,16 @@ class train():
         self.mtr = meter.ConfusionMeter(k=n_classes)
 
 
-    def forward(self):
+    def forward(self, epoch):
         args = self.args
         data_loader = self.data_loader
         model = self.model
 
         self.mtr.reset()
+
+        if (epoch + 1) % 100 == 0:
+            args.lr /= 10
+
         optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.eta)
         loss_fn = nn.CrossEntropyLoss()
         model.train()

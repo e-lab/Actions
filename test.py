@@ -15,10 +15,10 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 
-class test():
+class Test():
     def __init__(self, model, data_loader, data_len, n_classes, args):
 
-        super(test, self).__init__()
+        super(Test, self).__init__()
         self.model = model
         self.data_loader = data_loader
         self.data_len = data_len

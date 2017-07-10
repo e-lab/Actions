@@ -1,4 +1,5 @@
 import torch
+# torch.backends.cudnn.enabled = False
 from opts import get_args           # Get all the input arguments
 args = get_args()                   # Holds all the input argument
 
@@ -18,11 +19,13 @@ from subprocess import call
 
 # Local imports
 from Models.model2 import ModelDef
+from logger import Logger
 from utils.confusionMatrix import ConfusionMatrix
-from train import train as trainClass
-from test import test as testClass
+from train import Train as trainClass
+from test import Test as testClass
 import generateData
 
+# Clear screen
 print('\033[0;0f\033[0J')
 # Color Palette
 CP_R = '\033[31m'
@@ -89,15 +92,12 @@ def main():
     prev_accuracy = -1
 
     # Log batchwise error
-    logger = open(args.save + '/error.log', 'w')
-    logger.write('{:10} {:10}'.format('Train Error', 'Test Error'))
-    logger.write('\n{:-<20}'.format(''))
-    logger.close()
+    logger = Logger(args.save)
 
     train = trainClass(model, data_loader_train, data_len_train, n_classes, args)
     test = testClass(model, data_loader_test, data_len_test, n_classes, args)
     for epoch in range(1, args.epochs):
-        total_train_error = train.forward()
+        total_train_error = train.forward(epoch)
         confusion_matrix_train.generate_matrix(train.mtr.value())
 
         total_test_error = test.forward()
@@ -111,11 +111,12 @@ def main():
         print('{}Training Error: {}{:.6f} | {}Testing Error: {}{:.6f}'.format(
             CP_B, CP_C, total_train_error, CP_B, CP_C, total_test_error))
 
-        logger = open(args.save + '/error.log', 'a')
-        logger.write('\n{:.6f} {:.6f}'.format(total_train_error, total_test_error))
-        logger.close()
+        # write error values into a file and update plot
+        logger.update_error_log(total_train_error, total_test_error)
+
         accuracy = confusion_matrix_test.accuracy
         print(accuracy)
+
         # Save weights and model definition
         if accuracy >= prev_accuracy:
             prev_accuracy = accuracy
@@ -123,33 +124,9 @@ def main():
             print('{}{:-<50}{}\n'.format(CP_R, '', CP_C))
             torch.save(model.state_dict(), args.save + "/model.pt")
             torch.save(ModelDef, args.save + "/modelDef.pt")
-            conf_logger = open(args.save + '/conf.log', 'w')
-            conf_logger.write('{:-<20}'.format(''))
-            conf_logger.write('\nTrain:')
-            conf_logger.write('\n{:-<20}'.format(''))
-            conf_logger.write('\n{}'.format(confusion_matrix_train.classwise_accuracy))
-            conf_logger.write('\n{:-<20}'.format(''))
-            for value in confusion_matrix_train.classwise_metric.items():
-                conf_logger.write('\n{}: {}'.format(value[0], value[1]))
-            conf_logger.write('\n{:-<20}'.format(''))
-            for value in confusion_matrix_train.metric.items():
-                conf_logger.write('\n{}: {}'.format(value[0], value[1]))
-            conf_logger.write('\nGlobal Accuracy: {}'.format(confusion_matrix_train.accuracy))
-            conf_logger.write('\n{:-<20}'.format(''))
-            conf_logger.write('\n{:-<20}'.format(''))
-            conf_logger.write('\nTest:')
-            conf_logger.write('\n{:-<20}'.format(''))
-            conf_logger.write('\n{}'.format(confusion_matrix_test.classwise_accuracy))
-            conf_logger.write('\n{:-<20}'.format(''))
-            for value in confusion_matrix_test.classwise_metric.items():
-                conf_logger.write('\n{}: {}'.format(value[0], value[1]))
-            conf_logger.write('\n{:-<20}'.format(''))
-            for value in confusion_matrix_test.metric.items():
-                conf_logger.write('\n{}: {}'.format(value[0], value[1]))
-            conf_logger.write('\nGlobal Accuracy: {}'.format(confusion_matrix_test.accuracy))
-            conf_logger.write('\n{:-<20}'.format(''))
-            conf_logger.close()
 
+            # update confusion matrix log file
+            logger.update_conf_log(confusion_matrix_train, confusion_matrix_test)
 
     # train.logger_bw.close()
     # test.logger_bw.close()
