@@ -5,23 +5,26 @@ Our aim is to use the temporal coherency present in video data and stabilize neu
 
 ## Dependencies
 
+ + [*opencv*](http://docs.opencv.org/3.0-beta/doc/tutorials/introduction/linux_install/linux_install.html): dataset processing
+
+
  + [*matplotlib*](http://matplotlib.org/index.html): used by scikit-video
 
 ```bash
-pip install matplotlib
+pip3 install matplotlib
 ```
 
  + [*scikit-video*](https://github.com/scikit-video/scikit-video): accessing images / videos
 
 ```bash
-pip install sk-video
-pip install scikit-image --upgrade
+pip3 install sk-video
+pip3 install scikit-image --upgrade
 ```
 
  + [*tqdm*](https://github.com/tqdm/tqdm): progress bar
 
 ```bash
-pip install tqdm
+pip3 install tqdm
 ```
 
 ```bash

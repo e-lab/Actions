@@ -1,5 +1,6 @@
 import math
 import torch
+torch.backends.cudnn.enabled = False
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
@@ -20,9 +21,9 @@ class ModelDef(nn.Module):
         self.branch2 = ModelBranch()
 
         self.h_n = h_n
-        self.Conv2D1 = BasicConv2D(128, 256, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=False)
-        self.Conv2D2 = BasicConv2D(256, 512, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=False)
-        self.Conv2D3 = BasicConv2D(512, 512, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=False)
+        self.Conv2D1 = BasicConv2D(128, 256, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=True)
+        self.Conv2D2 = BasicConv2D(256, 512, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=True)
+        self.Conv2D3 = BasicConv2D(512, 512, (3,3), stride=(1,1), pad=(1,1), pool=True, dropout=True)
         self.Conv2D4 = nn.Conv2d(512, 512, (3,3), stride=(1,1), padding=(1,1))
 
         self.avgpool2D = nn.AvgPool2d((4,5), stride=(1,1), padding=(0,0))
@@ -36,7 +37,7 @@ class ModelDef(nn.Module):
                     x_n = h_n[i-1]
 
                 nonlinearity = 'tanh'
-                dropout = False
+                dropout = True
                 if(i == len(h_n) - 1):
                     nonlinearity = False
                     dropout = False
